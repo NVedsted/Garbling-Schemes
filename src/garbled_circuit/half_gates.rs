@@ -2,7 +2,6 @@ use aes::{Aes128, Block, BlockEncrypt, NewBlockCipher};
 use rand::RngCore;
 use rand::rngs::OsRng;
 
-use crate::{get_lsb, set_lsb, xor_blocks};
 use crate::circuit::{Circuit, Gate};
 use crate::garbled_circuit::{GarbledCircuit, GarbledDecoder, GarbledEncoder};
 
@@ -229,12 +228,60 @@ impl GarbledCircuit<HalfGatesEncoder, HalfGatesDecoder> for HalfGates {
     }
 }
 
+fn xor_blocks(a: &Block, b: &Block) -> Block {
+    let mut block: Block = Default::default();
+    block.iter_mut()
+        .zip(a.iter().zip(b.iter()))
+        .for_each(|(dst, (a, b))| *dst = a ^ b);
+    block
+}
+
+// TODO: consider inline
+fn get_lsb(s: &[u8]) -> bool {
+    s[0] & 1 != 0
+}
+
+// TODO: consider inline
+fn set_lsb(s: &mut [u8], b: bool) {
+    if b {
+        s[0] |= 1;
+    } else {
+        s[0] &= 0;
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use rand::thread_rng;
+
     use crate::circuit::Circuit;
     use crate::garbled_circuit::GarbledCircuit;
-    use crate::garbled_circuit::half_gates::HalfGates;
+    use crate::garbled_circuit::half_gates::*;
     use crate::util::{bits_to_u64, u64_to_bits};
+
+    #[test]
+    fn test_lsb() {
+        let mut s = [8, 9, 10];
+        set_lsb(&mut s, true);
+        assert_eq!(get_lsb(&s), true);
+        set_lsb(&mut s, false);
+        assert_eq!(get_lsb(&s), false);
+    }
+
+    #[test]
+    fn test_xor_blocks() {
+        let mut a: Block = Default::default();
+        let mut b: Block = Default::default();
+
+        thread_rng().fill_bytes(&mut a);
+        thread_rng().fill_bytes(&mut b);
+
+        let c = xor_blocks(&a, &b);
+
+        for i in 0..a.len() {
+            assert_eq!(a[i] ^ b[i], c[i]);
+        }
+    }
 
     fn evaluate_u64(circuit: &Circuit, inputs: &[u64]) -> Vec<bool> {
         let (gc, enc, dec) = HalfGates::garble_circuit(&circuit);
