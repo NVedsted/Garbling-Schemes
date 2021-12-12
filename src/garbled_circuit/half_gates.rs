@@ -144,10 +144,7 @@ impl GarbledCircuit<HalfGatesEncoder, HalfGatesDecoder> for HalfGates {
             .map(|&(output, gate)| {
                 (output, match gate {
                     Gate::Inv(a) => {
-                        let tmp = labels[a].0.clone();
-                        labels[a].0 = labels[a].1.clone();
-                        labels[a].1 = tmp;
-                        labels[output] = labels[a].clone();
+                        labels[output] = (labels[a].1.clone(), labels[a].0.clone());
                         GarbledGate::Copy(a)
                     }
                     Gate::And(a, b) => {

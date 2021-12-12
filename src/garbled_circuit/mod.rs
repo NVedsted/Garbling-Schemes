@@ -109,7 +109,6 @@ mod tests {
             }
 
             #[test]
-            #[ignore]
             fn test_aes_128() {
                 let key: [u8; 16] = hex!("74 c9 f1 91 b9 02 f9 6c 32 24 3e 13 b3 5f 12 af");
                 let msg: [u8; 16] = hex!("80 14 bf b6 e6 00 f1 cd 5e ec ce c5 11 2c 4c f9");
