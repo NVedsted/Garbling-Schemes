@@ -31,9 +31,10 @@ mod tests {
     macro_rules! test_garbled_circuit {
         ($gc:ty) => {
             use super::*;
+            use hex_literal::hex;
             use crate::circuit::Circuit;
             use crate::garbled_circuit::GarbledCircuit;
-            use crate::util::{bits_to_u64, u64_to_bits};
+            use crate::util::{bits_to_u64, u64_to_bits, u8_to_bits, bits_to_u8};
 
             fn evaluate_u64(circuit: &Circuit, inputs: &[u64]) -> Vec<bool> {
                 let (gc, enc, dec) = <$gc>::garble_circuit(&circuit);
@@ -105,6 +106,31 @@ mod tests {
                 assert_eq!(binop_u64(&circuit, 15, 5), 3);
                 assert_eq!(binop_u64(&circuit, 5000, 200), 25);
                 assert_eq!(binop_u64(&circuit, 258290865, 165465), 1561);
+            }
+
+            #[test]
+            #[ignore]
+            fn test_aes_128() {
+                let key: [u8; 16] = hex!("74 c9 f1 91 b9 02 f9 6c 32 24 3e 13 b3 5f 12 af");
+                let msg: [u8; 16] = hex!("80 14 bf b6 e6 00 f1 cd 5e ec ce c5 11 2c 4c f9");
+                let cph: [u8; 16] = hex!("7f 16 ae 5c 79 5b 18 86 b8 ca 08 b6 96 6a 7a 7c");
+
+                let mut input = key.iter().cloned()
+                    .flat_map(u8_to_bits)
+                    .rev()
+                    .collect::<Vec<_>>();
+                input.extend(msg.iter().cloned()
+                    .flat_map(u8_to_bits)
+                    .rev());
+
+                let circuit: Circuit = include_str!("../../circuits/aes_128.txt").parse().unwrap();
+                let (gc, enc, dec) = <$gc>::garble_circuit(&circuit);
+                let mut output = gc.garble_compute(&enc, &dec, &input);
+                output.reverse();
+                let output_bytes = output.chunks_exact(8)
+                    .map(|e| bits_to_u8(e))
+                    .collect::<Vec<_>>();
+                assert_eq!(output_bytes, cph);
             }
         };
     }
