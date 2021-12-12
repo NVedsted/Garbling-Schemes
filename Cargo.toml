@@ -8,3 +8,5 @@ edition = "2018"
 [dependencies]
 rand = "0.8.4"
 aes = "0.7.5"
+itertools = "0.10.3"
+sha2 = "0.10.0"
