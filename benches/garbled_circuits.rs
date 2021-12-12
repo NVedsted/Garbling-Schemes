@@ -4,6 +4,17 @@ use cc_garbling::garbled_circuit::{GarbledCircuit, GarbledEncoder};
 use cc_garbling::garbled_circuit::classic::Classic;
 use cc_garbling::garbled_circuit::half_gates::HalfGates;
 
+const INPUTS: [(&str, &str); 8] = [
+    ("adder64", include_str!("../circuits/adder64.txt")),
+    ("mult64", include_str!("../circuits/mult64.txt")),
+    ("subtract64", include_str!("../circuits/subtract64.txt")),
+    ("udivide64", include_str!("../circuits/udivide64.txt")),
+    ("zero_equal", include_str!("../circuits/zero_equal.txt")),
+    ("aes_128", include_str!("../circuits/aes_128.txt")),
+    ("sha256", include_str!("../circuits/sha256.txt")),
+    ("sha512", include_str!("../circuits/sha512.txt")),
+];
+
 macro_rules! garble {
     ($group:ident, $gc_name:literal, $gc:ty, $circuit_name:ident, $circuit:ident) => {
         $group.bench_with_input(
@@ -15,16 +26,8 @@ macro_rules! garble {
 }
 
 fn bench_garble(c: &mut Criterion) {
-    let inputs = [
-        ("adder64", include_str!("../circuits/adder64.txt")),
-        ("mult64", include_str!("../circuits/mult64.txt")),
-        ("subtract64", include_str!("../circuits/subtract64.txt")),
-        ("udivide64", include_str!("../circuits/udivide64.txt")),
-        ("zero_equal", include_str!("../circuits/zero_equal.txt")),
-    ];
-
     let mut g = c.benchmark_group("garble");
-    for (name, input) in inputs {
+    for (name, input) in INPUTS {
         let circuit = input.parse().unwrap();
         garble!(g, "HalfGates", HalfGates, name, circuit);
         garble!(g, "Classic", Classic, name, circuit);
@@ -32,8 +35,8 @@ fn bench_garble(c: &mut Criterion) {
 }
 
 macro_rules! evaluate {
-    ($group:ident, $name:literal, $gc:ty, $inputs:ident) => {
-        for (name, input) in $inputs {
+    ($group:ident, $name:literal, $gc:ty) => {
+        for (name, input) in INPUTS {
             let circuit = input.parse().unwrap();
             let (gc, enc, _) = <$gc>::garble_circuit(&circuit);
             let input = enc.encode(&vec![false; circuit.input_length]);
@@ -47,17 +50,9 @@ macro_rules! evaluate {
 }
 
 fn bench_evaluate(c: &mut Criterion) {
-    let inputs = [
-        ("adder64", include_str!("../circuits/adder64.txt")),
-        ("mult64", include_str!("../circuits/mult64.txt")),
-        ("subtract64", include_str!("../circuits/subtract64.txt")),
-        ("udivide64", include_str!("../circuits/udivide64.txt")),
-        ("zero_equal", include_str!("../circuits/zero_equal.txt")),
-    ];
-
     let mut g = c.benchmark_group("evaluate");
-    evaluate!(g, "HalfGates", HalfGates, inputs);
-    evaluate!(g, "Classic", Classic, inputs);
+    evaluate!(g, "HalfGates", HalfGates);
+    evaluate!(g, "Classic", Classic);
 }
 
 criterion_group!(benches,
